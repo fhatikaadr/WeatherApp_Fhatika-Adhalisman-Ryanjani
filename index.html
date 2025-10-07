@@ -1,0 +1,204 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Weather Dashboard</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1><i class="fas fa-cloud-sun"></i> Weather Dashboard</h1>
+            <p>Dapatkan informasi cuaca terkini untuk kota mana pun</p>
+            
+            <div class="search-container">
+                <input type="text" id="city-input" placeholder="Masukkan nama kota...">
+                <button id="search-btn"><i class="fas fa-search"></i> Cari</button>
+            </div>
+        </header>
+
+        <main id="weather-content">
+            <div class="loading" id="loading">
+                <i class="fas fa-spinner fa-spin"></i> Memuat data cuaca...
+            </div>
+        </main>
+
+        <footer>
+            <p>Dibuat dengan <i class="fas fa-heart"></i> menggunakan OpenWeather API</p>
+        </footer>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            const apiKey = '717b64c259b63d6656a8032709d0a797';
+            const cityInput = document.getElementById('city-input');
+            const searchBtn = document.getElementById('search-btn');
+            const weatherContent = document.getElementById('weather-content');
+            const loading = document.getElementById('loading');
+            
+            async function getWeatherData(city) {
+                try {
+                    loading.style.display = 'block';
+                    weatherContent.innerHTML = '';
+                    
+                    const response = await fetch(`https://api.openweathermap.org/data/2.5/weather?q=${city}&appid=${apiKey}&units=metric&lang=id`);
+                    
+                    if (!response.ok) {
+                        throw new Error('Kota tidak ditemukan');
+                    }
+                    
+                    const data = await response.json();
+                    displayWeatherData(data);
+                } catch (error) {
+                    weatherContent.innerHTML = `
+                        <div class="error">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <p>${error.message}</p>
+                            <p>Silakan coba dengan nama kota yang berbeda.</p>
+                        </div>
+                    `;
+                } finally {
+                    loading.style.display = 'none';
+                }
+            }
+            
+            function displayWeatherData(data) {
+                const date = new Date();
+                const options = { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' };
+                const formattedDate = date.toLocaleDateString('id-ID', options);
+                
+                const sunrise = new Date(data.sys.sunrise * 1000).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                const sunset = new Date(data.sys.sunset * 1000).toLocaleTimeString('id-ID', {hour: '2-digit', minute:'2-digit'});
+                
+                const weatherIcon = getWeatherIcon(data.weather[0].main);
+                
+                weatherContent.innerHTML = `
+                    <div class="weather-card">
+                        <div class="location">
+                            <div>
+                                <div class="city-name">${data.name}, ${data.sys.country}</div>
+                                <div class="date">${formattedDate}</div>
+                            </div>
+                            <div class="weather-icon">${weatherIcon}</div>
+                        </div>
+                        
+                        <div class="weather-main">
+                            <div class="temperature">${Math.round(data.main.temp)}°C</div>
+                            <div>
+                                <div class="weather-description">${data.weather[0].description}</div>
+                                <div>Terasa seperti: ${Math.round(data.main.feels_like)}°C</div>
+                            </div>
+                        </div>
+                        
+                        <div class="weather-details">
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-temperature-high"></i> Suhu Maks</div>
+                                <div class="detail-value">${Math.round(data.main.temp_max)}°C</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-temperature-low"></i> Suhu Min</div>
+                                <div class="detail-value">${Math.round(data.main.temp_min)}°C</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-tint"></i> Kelembaban</div>
+                                <div class="detail-value">${data.main.humidity}%</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-wind"></i> Kecepatan Angin</div>
+                                <div class="detail-value">${data.wind.speed} m/s</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-compress-arrows-alt"></i> Tekanan</div>
+                                <div class="detail-value">${data.main.pressure} hPa</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-eye"></i> Visibilitas</div>
+                                <div class="detail-value">${(data.visibility / 1000).toFixed(1)} km</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-sun"></i> Matahari Terbit</div>
+                                <div class="detail-value">${sunrise}</div>
+                            </div>
+                            <div class="detail-card">
+                                <div class="detail-title"><i class="fas fa-moon"></i> Matahari Terbenam</div>
+                                <div class="detail-value">${sunset}</div>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="forecast">
+                        <div class="forecast-card">
+                            <div class="forecast-day">Besok</div>
+                            <div class="forecast-icon">${weatherIcon}</div>
+                            <div class="forecast-temp">${Math.round(data.main.temp + 2)}°C</div>
+                        </div>
+                        <div class="forecast-card">
+                            <div class="forecast-day">Lusa</div>
+                            <div class="forecast-icon">${getWeatherIcon('Clouds')}</div>
+                            <div class="forecast-temp">${Math.round(data.main.temp + 1)}°C</div>
+                        </div>
+                        <div class="forecast-card">
+                            <div class="forecast-day">${getDayName(2)}</div>
+                            <div class="forecast-icon">${getWeatherIcon('Clear')}</div>
+                            <div class="forecast-temp">${Math.round(data.main.temp)}°C</div>
+                        </div>
+                        <div class="forecast-card">
+                            <div class="forecast-day">${getDayName(3)}</div>
+                            <div class="forecast-icon">${getWeatherIcon('Rain')}</div>
+                            <div class="forecast-temp">${Math.round(data.main.temp - 1)}°C</div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            function getWeatherIcon(weather) {
+                const icons = {
+                    'Clear': '<i class="fas fa-sun"></i>',
+                    'Clouds': '<i class="fas fa-cloud"></i>',
+                    'Rain': '<i class="fas fa-cloud-rain"></i>',
+                    'Drizzle': '<i class="fas fa-cloud-drizzle"></i>',
+                    'Thunderstorm': '<i class="fas fa-bolt"></i>',
+                    'Snow': '<i class="fas fa-snowflake"></i>',
+                    'Mist': '<i class="fas fa-smog"></i>',
+                    'Smoke': '<i class="fas fa-smog"></i>',
+                    'Haze': '<i class="fas fa-smog"></i>',
+                    'Dust': '<i class="fas fa-smog"></i>',
+                    'Fog': '<i class="fas fa-smog"></i>',
+                    'Sand': '<i class="fas fa-smog"></i>',
+                    'Ash': '<i class="fas fa-smog"></i>',
+                    'Squall': '<i class="fas fa-wind"></i>',
+                    'Tornado': '<i class="fas fa-tornado"></i>'
+                };
+                
+                return icons[weather] || '<i class="fas fa-cloud"></i>';
+            }
+            
+            function getDayName(offset) {
+                const days = ['Minggu', 'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu'];
+                const today = new Date().getDay();
+                return days[(today + offset) % 7];
+            }
+            
+            searchBtn.addEventListener('click', function() {
+                const city = cityInput.value.trim();
+                if (city) {
+                    getWeatherData(city);
+                }
+            });
+            
+            cityInput.addEventListener('keypress', function(e) {
+                if (e.key === 'Enter') {
+                    const city = cityInput.value.trim();
+                    if (city) {
+                        getWeatherData(city);
+                    }
+                }
+            });
+            
+            getWeatherData('Bandung');
+        });
+    </script>
+</body>
+</html>
